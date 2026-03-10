@@ -7,13 +7,15 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import { useRef, useState } from "react";
 import { globalStyles } from "../../styles/globaStyles";
 import Button from "../../components/Button";
-import DescriptionInput from "../../components/DescriptionInput";
-import CurrencyInput from "../../components/CurrencyInput";
-import DatePicker from "../../components/DatePicker";
+import { useContext, useRef, useState } from "react";
 import CategoryPicker from "../../components/CategoryPicker";
+import DatePicker from "../../components/DatePicker";
+import CurrencyInput from "../../components/CurrencyInput";
+import DescriptionInput from "../../components/DescriptionInput";
+import { MoneyContext } from "../contexts/GlobalState";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const initialForm = {
   description: "",
@@ -24,12 +26,26 @@ const initialForm = {
 
 export default function AddTransactions() {
   const [form, setForm] = useState(initialForm);
+  const [transactions, setTransactions] = useContext(MoneyContext);
   const valueInputRef = useRef();
 
-  const addTransaction = () => {
-    Alert.alert(
-      `${form.description} | ${form.value} | ${form.date} | ${form.category}`,
-    );
+  const setAsyncStorage = async (data) => {
+    try {
+      await AsyncStorage.setItem("transactions", JSON.stringify(data));
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const addTransaction = async () => {
+    const newTransaction = { id: transactions.length + 1, ...form };
+    const updatedTransactions = [...transactions, newTransaction];
+
+    setTransactions(updatedTransactions);
+    setForm(initialForm);
+    await setAsyncStorage(updatedTransactions);
+
+    Alert.alert("Transação adicionada com sucesso!");
   };
 
   return (
@@ -37,20 +53,19 @@ export default function AddTransactions() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView style={globalStyles.content}>
           <View style={styles.form}>
-            <DescriptionInput
-              form={form}
-              setForm={setForm}
-              valueInputRef={valueInputRef}
-            />
-            <CurrencyInput
-              form={form}
-              setForm={setForm}
-              valueInputRef={valueInputRef}
-            />
             <DatePicker form={form} setForm={setForm} />
             <CategoryPicker form={form} setForm={setForm} />
           </View>
-
+          <DescriptionInput
+            form={form}
+            setForm={setForm}
+            valueInputRef={valueInputRef}
+          />
+          <CurrencyInput
+            form={form}
+            setForm={setForm}
+            valueInputRef={valueInputRef}
+          />
           <Button onPress={addTransaction}>Adicionar</Button>
         </ScrollView>
       </TouchableWithoutFeedback>
